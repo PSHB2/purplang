@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PURPLANG 출석체크</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f9f6ff;
+      color: #333;
+      text-align: center;
+      padding: 2rem;
+    }
+    h2 {
+      color: #7300c3;
+      font-size: 2.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .g_id_signin {
+      margin: 1.5rem auto;
+      max-width: 300px; /* 버튼의 최대 너비를 제한하여 제목 길이에 맞춤 */
+    }
+    #result {
+      margin-top: 2rem;
+      padding: 1rem;
+      border: 2px solid #7300c3;
+      border-radius: 8px;
+      background-color: #fff;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      max-width: 300px; /* 결과 박스의 최대 너비를 제한하여 제목 길이에 맞춤 */
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .success {
+      color: #28a745;
+      font-weight: bold;
+    }
+    .failure {
+      color: #dc3545;
+      font-weight: bold;
+    }
+    p {
+      margin: 0.5rem 0;
+    }
+  </style>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+  <h2>💜 PURPLANG 출석체크</h2>
+  <div id="g_id_onload"
+       data-client_id="877676663940-47fvmgg1de0dtfpg9ha8p1ql1702d1h2.apps.googleusercontent.com"
+       data-context="signin"
+       data-ux_mode="popup"
+       data-callback="handleCredentialResponse"
+       data-auto_prompt="false">
+  </div>
+
+  <div class="g_id_signin"
+       data-type="standard"
+       data-shape="rectangular"
+       data-theme="outline"
+       data-text="signin_with"
+       data-size="large"
+       data-logo_alignment="left">
+  </div>
+
+  <div id="result"></div>
+
+  <script>
+    function decodeJwt(token) {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const binaryString = atob(base64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const decoder = new TextDecoder('utf-8');
+      const json = decoder.decode(bytes);
+      return JSON.parse(json);
+    }
+
+    async function handleCredentialResponse(response) {
+      const resultDiv = document.getElementById("result");
+      const decoded = decodeJwt(response.credential);
+      const name = decoded.name;     // 이름
+      const email = decoded.email;   // 이메일
+      const today = new Date().toISOString().split('T')[0]; // 현재 날짜
+
+      resultDiv.innerHTML = `
+        <p><strong>${name}</strong>님, 환영합니다!</p>
+        <p>이메일: ${email}</p>
+        <p>출석일자: ${today}</p>
+        <p class="success">✅ 인증 완료, 출석 저장 중...</p>
+      `;
+
+      // Google Apps Script Web App URL
+      const GAS_URL = 'https://script.google.com/macros/s/AKfycbwPjHxreDj5tiAMfXePm66MfTScKr5rLB4PvVh89831J5yxg5fQewgY0qkajbt2bd_q/exec'; // Web App URL
+
+      try {
+        const res = await fetch(GAS_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ name, email }) // name과 email 데이터 전송
+        });
+
+        resultDiv.innerHTML += `<p class="success">✅ 출석 저장 성공</p>`;
+      } catch (error) {
+        resultDiv.innerHTML += `<p class="failure">❌ 출석 저장 실패: ${error.message}</p>`;
+      }
+    }
+  </script>
+</body>
+</html>
